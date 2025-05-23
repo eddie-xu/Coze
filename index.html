@@ -493,10 +493,25 @@
                             // 将 \n 转换为真正的换行，并按行分割
                             const lines = parsedData.FInal_output.split('\\n');
                             
-                            // 过滤掉空行和只有冒号的行
+                            // 更严格地过滤掉空行和无效行
                             const filteredLines = lines.filter(line => {
                                 const trimmed = line.trim();
-                                return trimmed && trimmed !== '：' && trimmed.includes('：') && trimmed.split('：')[1].trim();
+                                // 检查行是否有效：
+                                // 1. 不是空行
+                                // 2. 包含冒号
+                                // 3. 冒号后面有实际内容（不只是空格）
+                                if (!trimmed || !trimmed.includes('：')) {
+                                    return false;
+                                }
+                                
+                                const parts = trimmed.split('：');
+                                if (parts.length < 2) {
+                                    return false;
+                                }
+                                
+                                const content = parts[1].trim();
+                                // 只保留冒号后面有实际内容的行
+                                return content && content.length > 0;
                             });
                             
                             displayText = filteredLines.join('\n');
