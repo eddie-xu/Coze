@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能图片分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .camera-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .preview-container {
+            width: 100%;
+            height: 200px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            overflow: hidden;
+            background: #f7fafc;
+        }
+        
+        .preview-placeholder {
+            text-align: center;
+            color: #a0aec0;
+        }
+        
+        .preview-placeholder svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+        
+        #preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .camera-btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
+            margin-right: 10px;
+        }
+        
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.6);
+        }
+        
+        .camera-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+            display: none;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.6);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .config-section {
+            margin-bottom: 20px;
+        }
+        
+        .config-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+        
+        .input-group select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .result-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        
+        .result-content {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+            color: #2d3748;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #4299e1;
+        }
+        
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>智能图片分析</h1>
+            <p>拍照或上传图片，AI为您智能分析</p>
+        </div>
+        
+        <div class="config-section">
+            <h3>API 配置</h3>
+            <div class="input-group">
+                <label for="api-base">API 基础地址:</label>
+                <select id="api-base">
+                    <option value="https://api.coze.cn">国内版 (api.coze.cn)</option>
+                    <option value="https://api.coze.com">国际版 (api.coze.com)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="api-token">Coze API Token:</label>
+                <input type="password" id="api-token" placeholder="请输入您的Coze API Token">
+            </div>
+            <div class="input-group">
+                <label for="workflow-id">工作流 ID:</label>
+                <input type="text" id="workflow-id" placeholder="请输入您的工作流ID">
+            </div>
+            <div class="input-group">
+                <label for="image-param">图片参数名:</label>
+                <input type="text" id="image-param" placeholder="工作流中图片参数的名称 (默认: image)" value="image">
+            </div>
+        </div>
+        
+        <div class="camera-section">
+            <div class="preview-container">
+                <div class="preview-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/>
+                        <path fill-rule="evenodd" d="M9.35 2A2.65 2.65 0 0 0 6.7 4.65H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-10a2 2 0 0 0-2-2h-2.7A2.65 2.65 0 0 0 14.65 2H9.35ZM7 12a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/>
+                    </svg>
+                    <p>点击拍照或上传图片</p>
+                </div>
+                <img id="preview-image" alt="预览图片">
+            </div>
+            
+            <button class="camera-btn" id="camera-btn">📷 拍照</button>
+            <button class="upload-btn" id="upload-btn">🚀 上传分析</button>
+            
+            <input type="file" id="file-input" accept="image/*" capture="environment">
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>正在分析图片，请稍候...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result-section" id="result-section">
+            <h3>分析结果</h3>
+            <div class="result-content" id="result-content"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentImageFile = null;
+        
+        const cameraBtn = document.getElementById('camera-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const previewImage = document.getElementById('preview-image');
+        const previewPlaceholder = document.querySelector('.preview-placeholder');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const resultSection = document.getElementById('result-section');
+        const resultContent = document.getElementById('result-content');
+        const apiToken = document.getElementById('api-token');
+        const workflowId = document.getElementById('workflow-id');
+        const imageParam = document.getElementById('image-param');
+        const apiBase = document.getElementById('api-base');
+        
+        // 拍照按钮点击事件
+        cameraBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 文件选择事件
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentImageFile = file;
+                
+                // 预览图片
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                    previewPlaceholder.style.display = 'none';
+                    uploadBtn.style.display = 'inline-block';
+                };
+                reader.readAsDataURL(file);
+                
+                // 隐藏之前的结果和错误
+                hideError();
+                hideResult();
+            }
+        });
+        
+        // 上传按钮点击事件
+        uploadBtn.addEventListener('click', async () => {
+            if (!currentImageFile) {
+                showError('请先选择图片');
+                return;
+            }
+            
+            if (!apiToken.value.trim()) {
+                showError('请输入API Token');
+                return;
+            }
+            
+            if (!workflowId.value.trim()) {
+                showError('请输入工作流ID');
+                return;
+            }
+            
+            await uploadToCoze();
+        });
+        
+        // 上传到Coze工作流
+        async function uploadToCoze() {
+            showLoading();
+            hideError();
+            hideResult();
+            
+            try {
+                // 第一步：上传文件到Coze获取file_id
+                const fileId = await uploadFileToCoze();
+                
+                // 第二步：使用file_id调用工作流
+                const result = await runWorkflowWithFileId(fileId);
+                
+                // 显示结果
+                displayResult(result);
+                
+            } catch (error) {
+                console.error('上传失败:', error);
+                showError(`上传失败: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 上传文件到Coze并获取file_id
+        async function uploadFileToCoze() {
+            try {
+                const formData = new FormData();
+                formData.append('file', currentImageFile);
+                formData.append('purpose', 'file-extract');
+                
+                console.log('开始上传文件到Coze...');
+                
+                const uploadUrl = `${apiBase.value}/v1/files/upload`;
+                const response = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiToken.value.trim()}`
+                    },
+                    body: formData
+                });
+                
+                console.log('文件上传响应状态:', response.status);
+                
+                if (!response.ok) {
+                    let errorText = '';
+                    try {
+                        errorText = await response.text();
+                    } catch (e) {
+                        errorText = '无法读取错误信息';
+                    }
+                    throw new Error(`文件上传失败: ${response.status} ${response.statusText}${errorText ? '\n' + errorText : ''}`);
+                }
+                
+                const result = await response.json();
+                console.log('文件上传结果:', result);
+                
+                if (!result.data || !result.data.id) {
+                    throw new Error('文件上传成功但未获取到file_id: ' + JSON.stringify(result));
+                }
+                
+                return result.data.id;
+                
+            } catch (error) {
+                console.error('文件上传详细错误:', error);
+                
+                if (error.name === 'TypeError' && error.message.includes('Load failed')) {
+                    throw new Error('网络请求失败，可能原因：\n1. 跨域问题 - 请在HTTPS环境下使用\n2. API地址不正确\n3. 网络连接问题\n4. 浏览器阻止了请求');
+                }
+                
+                throw error;
+            }
+        }
+        
+        // 使用file_id运行工作流
+        async function runWorkflowWithFileId(fileId) {
+            try {
+                const paramName = imageParam.value.trim() || 'image';
+                const requestBody = {
+                    workflow_id: workflowId.value.trim(),
+                    parameters: {
+                        [paramName]: fileId
+                    }
+                };
+                
+                console.log('开始调用工作流，参数:', requestBody);
+                
+                const workflowUrl = `${apiBase.value}/v1/workflow/run`;
+                const response = await fetch(workflowUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiToken.value.trim()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                console.log('工作流响应状态:', response.status);
+                
+                if (!response.ok) {
+                    let errorText = '';
+                    try {
+                        errorText = await response.text();
+                    } catch (e) {
+                        errorText = '无法读取错误信息';
+                    }
+                    throw new Error(`工作流调用失败: ${response.status} ${response.statusText}${errorText ? '\n' + errorText : ''}`);
+                }
+                
+                const result = await response.json();
+                console.log('工作流结果:', result);
+                return result;
+                
+            } catch (error) {
+                console.error('工作流调用详细错误:', error);
+                
+                if (error.name === 'TypeError' && error.message.includes('Load failed')) {
+                    throw new Error('工作流调用失败，可能原因：\n1. 跨域问题 - 请在HTTPS环境下使用\n2. API地址不正确\n3. 网络连接问题\n4. 浏览器阻止了请求');
+                }
+                
+                throw error;
+            }
+        }
+        
+        // 将文件转换为base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // 移除data:image/xxx;base64,前缀
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 显示结果
+        function displayResult(result) {
+            let displayText = '';
+            
+            if (result.data && result.data.output) {
+                displayText = JSON.stringify(result.data.output, null, 2);
+            } else if (result.output) {
+                displayText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+            } else {
+                displayText = JSON.stringify(result, null, 2);
+            }
+            
+            resultContent.textContent = displayText;
+            resultSection.style.display = 'block';
+        }
+        
+        // 显示加载状态
+        function showLoading() {
+            loading.style.display = 'block';
+            uploadBtn.disabled = true;
+            cameraBtn.disabled = true;
+        }
+        
+        // 隐藏加载状态
+        function hideLoading() {
+            loading.style.display = 'none';
+            uploadBtn.disabled = false;
+            cameraBtn.disabled = false;
+        }
+        
+        // 显示错误
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // 隐藏错误
+        function hideError() {
+            errorDiv.style.display = 'none';
+        }
+        
+        // 隐藏结果
+        function hideResult() {
+            resultSection.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
