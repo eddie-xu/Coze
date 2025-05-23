@@ -270,7 +270,7 @@
             <button class="camera-btn" id="camera-btn">📷 拍照</button>
             <button class="upload-btn" id="upload-btn">🚀 上传分析</button>
             
-            <input type="file" id="file-input" accept="image/*" capture="environment">
+            <input type="file" id="file-input" accept="image/*">
         </div>
         
         <div class="loading" id="loading">
@@ -496,11 +496,20 @@
                             // 更严格地过滤掉空行和无效行
                             const filteredLines = lines.filter(line => {
                                 const trimmed = line.trim();
-                                // 检查行是否有效：
-                                // 1. 不是空行
-                                // 2. 包含冒号
-                                // 3. 冒号后面有实际内容（不只是空格）
-                                if (!trimmed || !trimmed.includes('：')) {
+                                console.log('处理行:', `"${trimmed}"`); // 临时调试日志
+                                
+                                // 过滤掉完全空行
+                                if (!trimmed) {
+                                    return false;
+                                }
+                                
+                                // 过滤掉只有冒号的行
+                                if (trimmed === '：') {
+                                    return false;
+                                }
+                                
+                                // 必须包含冒号
+                                if (!trimmed.includes('：')) {
                                     return false;
                                 }
                                 
@@ -509,11 +518,15 @@
                                     return false;
                                 }
                                 
+                                // 检查冒号前面（字段名）和后面（内容）都有有效内容
+                                const fieldName = parts[0].trim();
                                 const content = parts[1].trim();
-                                // 只保留冒号后面有实际内容的行
-                                return content && content.length > 0;
+                                
+                                // 必须有字段名和内容
+                                return fieldName && fieldName.length > 0 && content && content.length > 0;
                             });
                             
+                            console.log('过滤后的行:', filteredLines); // 临时调试日志
                             displayText = filteredLines.join('\n');
                         } else {
                             displayText = JSON.stringify(parsedData, null, 2);
