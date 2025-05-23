@@ -418,8 +418,8 @@
                     workflow_id: '7506535897278906406',
                     parameters: {
                         [paramName]: {
-                                type: "file",  // 指定类型为文件
-                                file_id: fileId  // 文件ID
+                            type: "file",  // 指定类型为文件
+                            file_id: fileId  // 文件ID
                         }
                     }
                 };
@@ -482,61 +482,38 @@
             let displayText = '';
             
             try {
-                // 尝试从不同的路径获取实际的输出内容
-                let actualOutput = null;
-                
-                // 检查 result.data.output
-                if (result.data && result.data.output) {
-                    actualOutput = result.data.output;
-                }
-                // 检查 result.output
-                else if (result.output) {
-                    actualOutput = result.output;
-                }
-                // 检查是否有其他可能的输出字段
-                else if (result.data && result.data.result) {
-                    actualOutput = result.data.result;
-                }
-                
-                if (actualOutput) {
-                    // 如果输出是字符串，直接显示
-                    if (typeof actualOutput === 'string') {
-                        displayText = actualOutput;
-                    }
-                    // 如果是对象，提取有用的内容
-                    else if (typeof actualOutput === 'object') {
-                        // 过滤掉状态、调试URL等系统信息
-                        const filteredOutput = {};
-                        for (const [key, value] of Object.entries(actualOutput)) {
-                            // 只保留实际的业务输出，过滤系统字段
-                            if (!key.toLowerCase().includes('status') &&
-                                !key.toLowerCase().includes('debug') &&
-                                !key.toLowerCase().includes('url') &&
-                                !key.toLowerCase().includes('id') &&
-                                !key.toLowerCase().includes('timestamp') &&
-                                !key.toLowerCase().includes('metadata')) {
-                                filteredOutput[key] = value;
-                            }
-                        }
+                // 检查 result.data 是否是字符串格式的JSON
+                if (result.data && typeof result.data === 'string') {
+                    try {
+                        // 解析 data 字段中的JSON字符串
+                        const parsedData = JSON.parse(result.data);
                         
-                        // 如果过滤后还有内容，格式化显示
-                        if (Object.keys(filteredOutput).length > 0) {
-                            displayText = Object.entries(filteredOutput)
-                                .map(([key, value]) => {
-                                    if (typeof value === 'string') {
-                                        return `${key}: ${value}`;
-                                    } else {
-                                        return `${key}: ${JSON.stringify(value, null, 2)}`;
-                                    }
-                                })
-                                .join('\n\n');
+                        // 提取 FInal_output 内容
+                        if (parsedData.FInal_output) {
+                            // 将 \n 转换为真正的换行，并按行分割
+                            const lines = parsedData.FInal_output.split('\\n');
+                            
+                            // 过滤掉空行和只有冒号的行
+                            const filteredLines = lines.filter(line => {
+                                const trimmed = line.trim();
+                                return trimmed && trimmed !== '：' && trimmed.includes('：') && trimmed.split('：')[1].trim();
+                            });
+                            
+                            displayText = filteredLines.join('\n');
                         } else {
-                            // 如果过滤后没有内容，显示原始输出
-                            displayText = JSON.stringify(actualOutput, null, 2);
+                            displayText = JSON.stringify(parsedData, null, 2);
                         }
+                    } catch (parseError) {
+                        // 如果解析失败，显示原始 data 内容
+                        displayText = result.data;
                     }
+                }
+                // 处理其他格式的返回值（保持兼容性）
+                else if (result.data && result.data.output) {
+                    displayText = result.data.output;
+                } else if (result.output) {
+                    displayText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
                 } else {
-                    // 如果找不到明确的输出，尝试显示整个结果但格式化
                     displayText = JSON.stringify(result, null, 2);
                 }
                 
