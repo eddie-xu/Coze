@@ -255,29 +255,6 @@
             <p>拍照或上传图片，AI为您智能分析</p>
         </div>
         
-        <div class="config-section">
-            <h3>API 配置</h3>
-            <div class="input-group">
-                <label for="api-base">API 基础地址:</label>
-                <select id="api-base">
-                    <option value="https://api.coze.cn">国内版 (api.coze.cn)</option>
-                    <option value="https://api.coze.com">国际版 (api.coze.com)</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="api-token">Coze API Token:</label>
-                <input type="password" id="api-token" placeholder="请输入您的Coze API Token">
-            </div>
-            <div class="input-group">
-                <label for="workflow-id">工作流 ID:</label>
-                <input type="text" id="workflow-id" placeholder="请输入您的工作流ID">
-            </div>
-            <div class="input-group">
-                <label for="image-param">图片参数名:</label>
-                <input type="text" id="image-param" placeholder="工作流中图片参数的名称 (默认: image)" value="image">
-            </div>
-        </div>
-        
         <div class="camera-section">
             <div class="preview-container">
                 <div class="preview-placeholder">
@@ -321,10 +298,6 @@
         const errorDiv = document.getElementById('error');
         const resultSection = document.getElementById('result-section');
         const resultContent = document.getElementById('result-content');
-        const apiToken = document.getElementById('api-token');
-        const workflowId = document.getElementById('workflow-id');
-        const imageParam = document.getElementById('image-param');
-        const apiBase = document.getElementById('api-base');
         
         // 拍照按钮点击事件
         cameraBtn.addEventListener('click', () => {
@@ -357,16 +330,6 @@
         uploadBtn.addEventListener('click', async () => {
             if (!currentImageFile) {
                 showError('请先选择图片');
-                return;
-            }
-            
-            if (!apiToken.value.trim()) {
-                showError('请输入API Token');
-                return;
-            }
-            
-            if (!workflowId.value.trim()) {
-                showError('请输入工作流ID');
                 return;
             }
             
@@ -406,11 +369,11 @@
                 
                 console.log('开始上传文件到Coze...');
                 
-                const uploadUrl = `${apiBase.value}/v1/files/upload`;
+                const uploadUrl = 'https://api.coze.cn/v1/files/upload';
                 const response = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${apiToken.value.trim()}`
+                        'Authorization': 'Bearer pat_XAZ3XSjfWY1qetybGkQ4hHxSmr0uh9fslNn0NhlHXIKX6B37pyOUMkpJ2bUH6E4I'
                     },
                     body: formData
                 });
@@ -450,9 +413,9 @@
         // 使用file_id运行工作流
         async function runWorkflowWithFileId(fileId) {
             try {
-                const paramName = imageParam.value.trim() || 'image';
+                const paramName = 'image';
                 const requestBody = {
-                    workflow_id: workflowId.value.trim(),
+                    workflow_id: '7506535897278906406',
                     parameters: {
                         [paramName]: {
                                 type: "file",  // 指定类型为文件
@@ -463,11 +426,11 @@
                 
                 console.log('开始调用工作流，参数:', requestBody);
                 
-                const workflowUrl = `${apiBase.value}/v1/workflow/run`;
+                const workflowUrl = 'https://api.coze.cn/v1/workflow/run';
                 const response = await fetch(workflowUrl, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${apiToken.value.trim()}`,
+                        'Authorization': 'Bearer pat_XAZ3XSjfWY1qetybGkQ4hHxSmr0uh9fslNn0NhlHXIKX6B37pyOUMkpJ2bUH6E4I',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(requestBody)
@@ -518,11 +481,67 @@
         function displayResult(result) {
             let displayText = '';
             
-            if (result.data && result.data.output) {
-                displayText = JSON.stringify(result.data.output, null, 2);
-            } else if (result.output) {
-                displayText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
-            } else {
+            try {
+                // 尝试从不同的路径获取实际的输出内容
+                let actualOutput = null;
+                
+                // 检查 result.data.output
+                if (result.data && result.data.output) {
+                    actualOutput = result.data.output;
+                }
+                // 检查 result.output
+                else if (result.output) {
+                    actualOutput = result.output;
+                }
+                // 检查是否有其他可能的输出字段
+                else if (result.data && result.data.result) {
+                    actualOutput = result.data.result;
+                }
+                
+                if (actualOutput) {
+                    // 如果输出是字符串，直接显示
+                    if (typeof actualOutput === 'string') {
+                        displayText = actualOutput;
+                    }
+                    // 如果是对象，提取有用的内容
+                    else if (typeof actualOutput === 'object') {
+                        // 过滤掉状态、调试URL等系统信息
+                        const filteredOutput = {};
+                        for (const [key, value] of Object.entries(actualOutput)) {
+                            // 只保留实际的业务输出，过滤系统字段
+                            if (!key.toLowerCase().includes('status') &&
+                                !key.toLowerCase().includes('debug') &&
+                                !key.toLowerCase().includes('url') &&
+                                !key.toLowerCase().includes('id') &&
+                                !key.toLowerCase().includes('timestamp') &&
+                                !key.toLowerCase().includes('metadata')) {
+                                filteredOutput[key] = value;
+                            }
+                        }
+                        
+                        // 如果过滤后还有内容，格式化显示
+                        if (Object.keys(filteredOutput).length > 0) {
+                            displayText = Object.entries(filteredOutput)
+                                .map(([key, value]) => {
+                                    if (typeof value === 'string') {
+                                        return `${key}: ${value}`;
+                                    } else {
+                                        return `${key}: ${JSON.stringify(value, null, 2)}`;
+                                    }
+                                })
+                                .join('\n\n');
+                        } else {
+                            // 如果过滤后没有内容，显示原始输出
+                            displayText = JSON.stringify(actualOutput, null, 2);
+                        }
+                    }
+                } else {
+                    // 如果找不到明确的输出，尝试显示整个结果但格式化
+                    displayText = JSON.stringify(result, null, 2);
+                }
+                
+            } catch (error) {
+                console.error('解析结果时出错:', error);
                 displayText = JSON.stringify(result, null, 2);
             }
             
